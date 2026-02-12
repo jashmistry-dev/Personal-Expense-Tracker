@@ -25,7 +25,7 @@ app.use(
     resave: false,
     saveUninitialized: true,
     cookie: { maxAge: 1000 * 60 * 60 * 24 }, // 1 day session
-  })
+  }),
 );
 
 app.use(passport.initialize());
@@ -38,6 +38,7 @@ const db = new pg.Client({
   database: process.env.PG_DATABASE,
   password: process.env.PG_PASSWORD,
   port: process.env.PG_PORT,
+  ssl: { rejectUnauthorized: false },
 });
 db.connect();
 
@@ -140,7 +141,7 @@ app.get("/expense", async (req, res) => {
       // Fetch all transactions for the user, sorted by date (newest first)
       const result = await db.query(
         "SELECT * FROM expense WHERE user_id = $1 ORDER BY created_at DESC",
-        [userId]
+        [userId],
       );
 
       const transactions = result.rows;
@@ -200,7 +201,7 @@ app.get("/expense", async (req, res) => {
       console.error("Expense dashboard error:", err);
       res.redirect(
         "/login?error=server&message=" +
-          encodeURIComponent("Error loading dashboard. Please try again.")
+          encodeURIComponent("Error loading dashboard. Please try again."),
       );
     }
   } else {
@@ -227,36 +228,36 @@ app.post("/add-expense", async (req, res) => {
       if (!description || !transfer_to || !amount || !type || !expenseDate) {
         return res.redirect(
           "/add-expense?error=validation&message=" +
-            encodeURIComponent("All fields are required")
+            encodeURIComponent("All fields are required"),
         );
       }
 
       if (isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
         return res.redirect(
           "/add-expense?error=validation&message=" +
-            encodeURIComponent("Amount must be a positive number")
+            encodeURIComponent("Amount must be a positive number"),
         );
       }
 
       await db.query(
         "INSERT INTO expense(description, transfer_to, amount_rs, created_at, user_id, type) VALUES($1,$2,$3,$4,$5,$6)",
-        [description, transfer_to, amount, expenseDate, user_id, type]
+        [description, transfer_to, amount, expenseDate, user_id, type],
       );
       res.redirect(
         "/expense?success=true&message=" +
-          encodeURIComponent("Transaction added successfully!")
+          encodeURIComponent("Transaction added successfully!"),
       );
     } catch (error) {
       console.error("Error adding expense:", error);
       res.redirect(
         "/add-expense?error=server&message=" +
-          encodeURIComponent("Error adding transaction. Please try again.")
+          encodeURIComponent("Error adding transaction. Please try again."),
       );
     }
   } else {
     res.redirect(
       "/login?error=auth&message=" +
-        encodeURIComponent("Please login to continue")
+        encodeURIComponent("Please login to continue"),
     );
   }
 });
@@ -272,28 +273,28 @@ app.get("/admin", requireAdmin, async (req, res) => {
 
     // Get total transactions count
     const transactionsCount = await db.query(
-      "SELECT COUNT(*) as count FROM expense"
+      "SELECT COUNT(*) as count FROM expense",
     );
     const totalTransactions = parseInt(transactionsCount.rows[0].count);
 
     // Get total amount of all transactions
     const totalAmountResult = await db.query(
-      "SELECT SUM(amount_rs) as total FROM expense"
+      "SELECT SUM(amount_rs) as total FROM expense",
     );
     const totalAmount = parseFloat(totalAmountResult.rows[0].total || 0);
 
     // Get transactions by type
     const incomeResult = await db.query(
-      "SELECT SUM(amount_rs) as total FROM expense WHERE type = 'income'"
+      "SELECT SUM(amount_rs) as total FROM expense WHERE type = 'income'",
     );
     const expenseResult = await db.query(
-      "SELECT SUM(amount_rs) as total FROM expense WHERE type = 'expense'"
+      "SELECT SUM(amount_rs) as total FROM expense WHERE type = 'expense'",
     );
     const receivableResult = await db.query(
-      "SELECT SUM(amount_rs) as total FROM expense WHERE type = 'receivable'"
+      "SELECT SUM(amount_rs) as total FROM expense WHERE type = 'receivable'",
     );
     const payableResult = await db.query(
-      "SELECT SUM(amount_rs) as total FROM expense WHERE type = 'payable'"
+      "SELECT SUM(amount_rs) as total FROM expense WHERE type = 'payable'",
     );
 
     const totalIncome = parseFloat(incomeResult.rows[0].total || 0);
@@ -369,7 +370,7 @@ app.get("/admin/users", requireAdmin, async (req, res) => {
         GROUP BY u.id
         ORDER BY u.id DESC
       `,
-        [`%${search}%`]
+        [`%${search}%`],
       );
     } else {
       users = await db.query(`
@@ -535,7 +536,7 @@ app.get("/admin/transactions", requireAdmin, async (req, res) => {
 
     const totalsResult = await db.query(
       totalsQuery,
-      totalsParams.length > 0 ? totalsParams : null
+      totalsParams.length > 0 ? totalsParams : null,
     );
 
     const processedUser = processUserName(req.user);
@@ -568,7 +569,7 @@ app.post("/admin/transactions/delete/:id", requireAdmin, async (req, res) => {
     // Check if transaction exists
     const transactionCheck = await db.query(
       "SELECT * FROM expense WHERE id = $1",
-      [transactionId]
+      [transactionId],
     );
     if (transactionCheck.rows.length === 0) {
       return res.status(404).json({ error: "Transaction not found" });
@@ -667,14 +668,14 @@ app.post("/register", async (req, res) => {
     if (!name || !username || !password) {
       return res.redirect(
         "/register?error=validation&message=" +
-          encodeURIComponent("All fields are required")
+          encodeURIComponent("All fields are required"),
       );
     }
 
     if (password.length < 6) {
       return res.redirect(
         "/register?error=validation&message=" +
-          encodeURIComponent("Password must be at least 6 characters")
+          encodeURIComponent("Password must be at least 6 characters"),
       );
     }
 
@@ -684,7 +685,7 @@ app.post("/register", async (req, res) => {
     if (check.rows.length > 0) {
       return res.redirect(
         "/register?error=exists&message=" +
-          encodeURIComponent("Email already registered. Please login instead.")
+          encodeURIComponent("Email already registered. Please login instead."),
       );
     }
 
@@ -693,14 +694,14 @@ app.post("/register", async (req, res) => {
         console.error("Password hashing error:", err);
         return res.redirect(
           "/register?error=server&message=" +
-            encodeURIComponent("Server error. Please try again.")
+            encodeURIComponent("Server error. Please try again."),
         );
       }
 
       try {
         const result = await db.query(
           "INSERT INTO users(name, gmail, password, ph_no) VALUES($1,$2,$3,$4) RETURNING *",
-          [name, username, hash, phno]
+          [name, username, hash, phno],
         );
 
         req.login(result.rows[0], (err) => {
@@ -708,7 +709,7 @@ app.post("/register", async (req, res) => {
             console.error("Auto-login error:", err);
             return res.redirect(
               "/login?error=session&message=" +
-                encodeURIComponent("Registration successful! Please login.")
+                encodeURIComponent("Registration successful! Please login."),
             );
           }
 
@@ -722,7 +723,7 @@ app.post("/register", async (req, res) => {
         console.error("Database error:", dbError);
         return res.redirect(
           "/register?error=server&message=" +
-            encodeURIComponent("Database error. Please try again.")
+            encodeURIComponent("Database error. Please try again."),
         );
       }
     });
@@ -730,7 +731,7 @@ app.post("/register", async (req, res) => {
     console.error("Registration error:", err);
     res.redirect(
       "/register?error=server&message=" +
-        encodeURIComponent("An unexpected error occurred. Please try again.")
+        encodeURIComponent("An unexpected error occurred. Please try again."),
     );
   }
 });
@@ -755,7 +756,7 @@ app.post("/admin/login", async (req, res) => {
     if (!adminPassword || !verifyAdminPassword(adminPassword)) {
       return res.redirect(
         "/admin/login?error=admin&message=" +
-          encodeURIComponent("Invalid admin password")
+          encodeURIComponent("Invalid admin password"),
       );
     }
 
@@ -763,7 +764,7 @@ app.post("/admin/login", async (req, res) => {
     if (!isAdmin({ gmail: username })) {
       return res.redirect(
         "/admin/login?error=admin&message=" +
-          encodeURIComponent("This email is not registered as an admin")
+          encodeURIComponent("This email is not registered as an admin"),
       );
     }
 
@@ -795,7 +796,7 @@ app.post("/admin/login", async (req, res) => {
 
         const newUser = await db.query(
           "INSERT INTO users(name, gmail, password) VALUES($1, $2, $3) RETURNING *",
-          [adminName, username, hashedPassword]
+          [adminName, username, hashedPassword],
         );
 
         user = newUser.rows[0];
@@ -810,7 +811,7 @@ app.post("/admin/login", async (req, res) => {
           console.error("Session error:", err);
           return res.redirect(
             "/admin/login?error=session&message=" +
-              encodeURIComponent("Session error. Please try again.")
+              encodeURIComponent("Session error. Please try again."),
           );
         }
         return res.redirect("/admin");
@@ -819,14 +820,14 @@ app.post("/admin/login", async (req, res) => {
       console.error("Database error during admin login:", dbError);
       return res.redirect(
         "/admin/login?error=server&message=" +
-          encodeURIComponent("Database error. Please try again.")
+          encodeURIComponent("Database error. Please try again."),
       );
     }
   } catch (error) {
     console.error("Admin login route error:", error);
     res.redirect(
       "/admin/login?error=server&message=" +
-        encodeURIComponent("An unexpected error occurred. Please try again.")
+        encodeURIComponent("An unexpected error occurred. Please try again."),
     );
   }
 });
@@ -840,14 +841,14 @@ app.post("/login", async (req, res, next) => {
         console.error("Login error:", err);
         return res.redirect(
           "/login?error=server&message=" +
-            encodeURIComponent("Server error. Please try again.")
+            encodeURIComponent("Server error. Please try again."),
         );
       }
 
       if (!user) {
         return res.redirect(
           "/login?error=auth&message=" +
-            encodeURIComponent("User not found or invalid password")
+            encodeURIComponent("User not found or invalid password"),
         );
       }
 
@@ -856,7 +857,7 @@ app.post("/login", async (req, res, next) => {
           console.error("Session error:", err);
           return res.redirect(
             "/login?error=session&message=" +
-              encodeURIComponent("Session error. Please try again.")
+              encodeURIComponent("Session error. Please try again."),
           );
         }
 
@@ -871,7 +872,7 @@ app.post("/login", async (req, res, next) => {
     console.error("Login route error:", error);
     res.redirect(
       "/login?error=server&message=" +
-        encodeURIComponent("An unexpected error occurred. Please try again.")
+        encodeURIComponent("An unexpected error occurred. Please try again."),
     );
   }
 });
@@ -896,7 +897,7 @@ passport.use(
     } catch (err) {
       return cb(err);
     }
-  })
+  }),
 );
 
 // Google Auth (Keep your existing Google Strategy setup if credentials are in .env)
@@ -917,7 +918,7 @@ passport.use(
         if (result.rows.length === 0) {
           const newUser = await db.query(
             "INSERT INTO users (name, gmail, password) VALUES ($1, $2, $3) RETURNING *",
-            [profile.name.givenName, profile.email, "google"]
+            [profile.name.givenName, profile.email, "google"],
           );
           return cb(null, newUser.rows[0]);
         } else {
@@ -926,13 +927,13 @@ passport.use(
       } catch (err) {
         return cb(err);
       }
-    }
-  )
+    },
+  ),
 );
 
 app.get(
   "/auth/google",
-  passport.authenticate("google", { scope: ["profile", "email"] })
+  passport.authenticate("google", { scope: ["profile", "email"] }),
 );
 app.get(
   "/auth/google/secrets",
@@ -943,7 +944,7 @@ app.get(
       return res.redirect("/admin");
     }
     res.redirect("/expense");
-  }
+  },
 );
 
 passport.serializeUser((user, cb) => cb(null, user));
