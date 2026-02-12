@@ -1037,6 +1037,8 @@ app.get("/login", (req, res) => {
   res.render("login.ejs", { error: req.query.error || "" });
 });
 
+
+
 app.get("/logout", (req, res) => {
   req.logout(() => res.redirect("/"));
 });
@@ -1061,6 +1063,44 @@ app.get("/expense", async (req, res) => {
 /* =========================
    ADD EXPENSE
 ========================= */
+app.get("/register", (req, res) => {
+  res.render("register.ejs", { error: "" });
+});
+
+app.post("/register", async (req, res) => {
+  try {
+    const { name, username, password, phno } = req.body;
+
+    if (!name || !username || !password) {
+      return res.redirect("/register");
+    }
+
+    const existing = await db.query(
+      "SELECT * FROM users WHERE gmail = $1",
+      [username]
+    );
+
+    if (existing.rows.length > 0) {
+      return res.redirect("/login");
+    }
+
+    const hashed = await bcrypt.hash(password, saltRounds);
+
+    const result = await db.query(
+      "INSERT INTO users (name, gmail, password, ph_no) VALUES ($1,$2,$3,$4) RETURNING *",
+      [name, username, hashed, phno]
+    );
+
+    req.login(result.rows[0], (err) => {
+      if (err) return res.redirect("/login");
+      res.redirect("/expense");
+    });
+  } catch (err) {
+    console.error("Register error:", err);
+    res.redirect("/register");
+  }
+});
+
 app.post("/add-expense", async (req, res) => {
   if (!req.isAuthenticated()) return res.redirect("/login");
 
